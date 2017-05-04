@@ -11,10 +11,23 @@ defmodule Tentabucket do
   def process_response(%HTTPoison.Response{status_code: status_code, body: ""}), do: { status_code, nil }
   def process_response(%HTTPoison.Response{status_code: status_code, body: body }), do: { status_code, JSX.decode!(body) }
 
-  def get(path, client, params \\ []) do
-    initial_url = url(client, path)
-    url = add_params_to_url(initial_url, params)
-    _request(:get, url, nil)
+
+  # Those that don't take a payload
+  for method <- [:get, :delete] do
+      def unquote(method)(path, client, params \\ []) do
+        initial_url = url(client, path)
+        url = add_params_to_url(initial_url, params)
+        _request(unquote(method), url, client)
+      end
+  end
+
+  # Those that take a payload
+  for method <- [:post, :patch, :put] do
+      def unquote(method)(path, body, client, params \\ []) do
+        initial_url = url(client, path)
+        url = add_params_to_url(initial_url, params)
+        _request(unquote(method), url, client, body)
+      end
   end
 
   def _request(method, url, auth, body \\ "") do
